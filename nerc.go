@@ -64,6 +64,10 @@ func main() {
 	r := csv.NewReader(bufio.NewReader(csvFile))
 
 	configs := csvToConfigs(r)
+	err := os.RemoveAll("output")
+	if err != nil {
+		fmt.Println(err)
+	}
 	os.Mkdir("output", os.ModePerm)
 	for idx, conf := range configs {
 		file, _ := json.MarshalIndent(conf, "", "  ")
