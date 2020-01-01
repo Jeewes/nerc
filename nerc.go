@@ -82,6 +82,7 @@ func main() {
 			fmt.Println(err)
 		}
 	}
+	fmt.Println("Done")
 }
 
 // Read given csv file and build NexRender configurations
@@ -96,7 +97,7 @@ func csvToConfigs(r *csv.Reader) []NexRenderConf {
 	for {
 		row, err := r.Read()
 		if err == io.EOF {
-			fmt.Printf("End of input file.")
+			fmt.Println("End of input file")
 			break
 		}
 		if err != nil {
