@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/csv"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -52,8 +53,14 @@ type TemplateConf struct {
 //	VideoTemplate string `json:"VideoTemplate"`
 //}
 
+var inputFile string
+
 func main() {
-	csvFile, _ := os.Open("products.csv")
+	flag.StringVar(&inputFile, "i", "input.csv", "Input file")
+	flag.Parse()
+	fmt.Println("Reading input file: " + inputFile)
+
+	csvFile, _ := os.Open(inputFile)
 	r := csv.NewReader(bufio.NewReader(csvFile))
 
 	configs := csvToConfigs(r)
@@ -80,7 +87,7 @@ func csvToConfigs(r *csv.Reader) []NexRenderConf {
 	for {
 		row, err := r.Read()
 		if err == io.EOF {
-			fmt.Printf("Loppu")
+			fmt.Printf("End of input file.")
 			break
 		}
 		if err != nil {
