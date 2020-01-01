@@ -54,9 +54,11 @@ type TemplateConf struct {
 //}
 
 var inputFile string
+var purge bool
 
 func main() {
 	flag.StringVar(&inputFile, "i", "input.csv", "Input file")
+	flag.BoolVar(&purge, "purge", false, "Purge all existing files from output directory.")
 	flag.Parse()
 	fmt.Println("Reading input file: " + inputFile)
 
@@ -64,9 +66,12 @@ func main() {
 	r := csv.NewReader(bufio.NewReader(csvFile))
 
 	configs := csvToConfigs(r)
-	err := os.RemoveAll("output")
-	if err != nil {
-		fmt.Println(err)
+	if purge {
+		fmt.Println("Purging output directory...")
+		err := os.RemoveAll("output")
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 	os.Mkdir("output", os.ModePerm)
 	for idx, conf := range configs {
