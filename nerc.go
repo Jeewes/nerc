@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 )
 
@@ -55,17 +56,19 @@ type TemplateConf struct {
 
 var inputFile string
 var purge bool
+var templatesDir string
 
 func main() {
 	flag.StringVar(&inputFile, "i", "input.csv", "Input file")
+	flag.StringVar(&templatesDir, "t", "templates/", "Path to nexrender templates dir")
 	flag.BoolVar(&purge, "purge", false, "Purge all existing files from output directory.")
 	flag.Parse()
+
 	fmt.Println("Reading input file: " + inputFile)
 
 	csvFile, _ := os.Open(inputFile)
 	r := csv.NewReader(bufio.NewReader(csvFile))
 
-	configs := csvToConfigs(r)
 	if purge {
 		fmt.Println("Purging output directory...")
 		err := os.RemoveAll("output")
@@ -74,6 +77,8 @@ func main() {
 		}
 	}
 	os.Mkdir("output", os.ModePerm)
+
+	configs := csvToConfigs(r, templatesDir)
 	for idx, conf := range configs {
 		file, _ := json.MarshalIndent(conf, "", "  ")
 		filepath := "output/" + strconv.Itoa(idx) + "_tuote.json"
@@ -85,17 +90,30 @@ func main() {
 	fmt.Println("Done")
 }
 
+func visitPath(files *[]string) filepath.WalkFunc {
+	return func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			log.Fatal(err)
+		}
+		*files = append(*files, path)
+		return nil
+	}
+}
+
 // Read given csv file and build NexRender configurations
 // out of the csv and hard coded variation parameters.
-func csvToConfigs(r *csv.Reader) []NexRenderConf {
+func csvToConfigs(r *csv.Reader, templatesDir string) []NexRenderConf {
 	var configs []NexRenderConf
-	templates := []string{
-		"/path/to/something/",
-		"/path/to/something/else/",
-		"third/path/",
+	var files []string
+
+	err := filepath.Walk(templatesDir, visitPath(&files))
+	if err != nil {
+		panic(err)
 	}
+
 	for {
 		row, err := r.Read()
+
 		if err == io.EOF {
 			fmt.Println("End of input file")
 			break
@@ -103,8 +121,8 @@ func csvToConfigs(r *csv.Reader) []NexRenderConf {
 		if err != nil {
 			log.Fatal(err)
 		}
-		//fmt.Println(row)
-		for _, template := range templates {
+
+		for _, template := range files {
 			conf := buildConf(row, template)
 			configs = append(configs, conf)
 		}
