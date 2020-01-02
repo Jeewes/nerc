@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"text/template"
 )
 
@@ -100,13 +101,13 @@ func csvToConfigs(r *csv.Reader, templatesDir string) {
 			log.Fatal(err)
 		}
 
-		for _, templateFile := range files {
-			writeConf(row, templateFile)
+		for i, templateFile := range files {
+			writeConf(row, templateFile, i)
 		}
 	}
 }
 
-func writeConf(row []string, template string) {
+func writeConf(row []string, template string, i int) {
 	vars := make(map[string]interface{})
 	vars["Template"] = template
 	vars["VideoOutputFile"] = "todo/path/sample.avi"
@@ -114,7 +115,7 @@ func writeConf(row []string, template string) {
 	vars["ProductPrice"] = row[PRICE_COL]
 	vars["ProductName"] = row[PRODUCT_NAME_COL]
 	conf := ProcessFile("nerc_conf.json", vars)
-	outputFile := "output/" + row[0] + "_tuote.json"
+	outputFile := "output/sku_" + row[0] + "_version_" + strconv.Itoa(i) + ".json"
 	err := ioutil.WriteFile(outputFile, []byte(conf), 0644)
 	if err != nil {
 		fmt.Println(err)
