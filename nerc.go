@@ -75,6 +75,9 @@ func visitPath(files *[]string) filepath.WalkFunc {
 		if err != nil {
 			log.Fatal(err)
 		}
+		if info.IsDir() {
+			return nil
+		}
 		*files = append(*files, path)
 		return nil
 	}
