@@ -2,8 +2,8 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/csv"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -11,48 +11,12 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
+	"text/template"
 )
 
 const IMAGE_URL_COL = 21
 const PRODUCT_NAME_COL = 6
 const PRICE_COL = 14
-
-type NexRenderConf struct {
-	Template TemplateConf `json:"template"`
-	Assets   []AssetConf  `json:"assets"`
-	Actions  ActionsConf  `json:"actions"`
-}
-type ActionsConf struct {
-	PostRender []PostRenderConf `json:"postrender"`
-}
-type AssetConf struct {
-	Src         string `json:"src,omitempty"`
-	Type        string `json:"type"`
-	LayerIndex  int    `json:"layerIndex,omitempty"`
-	Composition string `json:"composition"`
-	Property    string `json:"property,omitempty"`
-	Expression  string `json:"expression,omitempty"`
-	LayerName   string `json:"layerName,omitempty"`
-}
-type PostRenderConf struct {
-	Module string `json:"module"`
-	Input  string `json:"input"`
-	Output string `json:"output"`
-}
-type TemplateConf struct {
-	Src              string `json:"src"`
-	Composition      string `json:"composition"`
-	SettingsTemplate string `json:"settingsTemplate"`
-	OutputModule     string `json:"outputModule"`
-	OutputExt        string `json:"outputExt"`
-}
-
-//type NexRenderConf struct {
-//	ProductName   string `json:"ProductName"`
-//	ProductPrice  string `json:"ProductPrice"`
-//	VideoTemplate string `json:"VideoTemplate"`
-//}
 
 var inputFile string
 var purge bool
@@ -78,16 +42,31 @@ func main() {
 	}
 	os.Mkdir("output", os.ModePerm)
 
-	configs := csvToConfigs(r, templatesDir)
-	for idx, conf := range configs {
-		file, _ := json.MarshalIndent(conf, "", "  ")
-		filepath := "output/" + strconv.Itoa(idx) + "_tuote.json"
-		err := ioutil.WriteFile(filepath, file, 0644)
-		if err != nil {
-			fmt.Println(err)
-		}
-	}
+	csvToConfigs(r, templatesDir)
 	fmt.Println("Done")
+}
+
+// process applies the data structure 'vars' onto an already
+// parsed template 't', and returns the resulting string.
+func process(t *template.Template, vars interface{}) string {
+	var tmplBytes bytes.Buffer
+
+	err := t.Execute(&tmplBytes, vars)
+	if err != nil {
+		panic(err)
+	}
+	return tmplBytes.String()
+}
+
+// ProcessFile parses the supplied filename and compiles its template
+// using the given variables.
+func ProcessFile(fileName string, vars interface{}) string {
+	tmpl, err := template.ParseFiles(fileName)
+
+	if err != nil {
+		panic(err)
+	}
+	return process(tmpl, vars)
 }
 
 func visitPath(files *[]string) filepath.WalkFunc {
@@ -102,8 +81,7 @@ func visitPath(files *[]string) filepath.WalkFunc {
 
 // Read given csv file and build NexRender configurations
 // out of the csv and hard coded variation parameters.
-func csvToConfigs(r *csv.Reader, templatesDir string) []NexRenderConf {
-	var configs []NexRenderConf
+func csvToConfigs(r *csv.Reader, templatesDir string) {
 	var files []string
 
 	err := filepath.Walk(templatesDir, visitPath(&files))
@@ -122,64 +100,23 @@ func csvToConfigs(r *csv.Reader, templatesDir string) []NexRenderConf {
 			log.Fatal(err)
 		}
 
-		for _, template := range files {
-			conf := buildConf(row, template)
-			configs = append(configs, conf)
+		for _, templateFile := range files {
+			writeConf(row, templateFile)
 		}
 	}
-	return configs
 }
 
-// Build NexRender configuration out or the csv row and template variation
-func buildConf(row []string, template string) NexRenderConf {
-	var conf = NexRenderConf{
-		Template: TemplateConf{
-			Src:              template,
-			Composition:      "main",
-			SettingsTemplate: "Best Settings",
-			OutputModule:     "Lossless",
-			OutputExt:        "avi",
-		},
-		Assets: []AssetConf{
-			{
-				Src:         row[IMAGE_URL_COL],
-				Type:        "image",
-				LayerIndex:  1,
-				Composition: "Kuva",
-			},
-			{
-				Type:        "data",
-				LayerIndex:  1,
-				Composition: "Kuva",
-				Property:    "Scale",
-				Expression:  "if(thisLayer.width > thisLayer.height) { s=100*thisComp.width/thisLayer.width; [s,s]; } else { s=100*thisComp.height/thisLayer.height; [s,s]; }",
-			},
-			{
-				Type:        "data",
-				LayerName:   "tuotenimi",
-				Composition: "Tuoteplanssi",
-				Property:    "Source Text",
-				Expression:  "text.sourceText = '" + row[PRODUCT_NAME_COL] + "'",
-			},
-			{
-				Type:        "data",
-				LayerName:   "hinta",
-				Composition: "Tuoteplanssi",
-				Property:    "Source Text",
-				Expression:  "text.sourceText ='" + row[PRICE_COL] + "'",
-			},
-		},
-		Actions: ActionsConf{
-			PostRender: []PostRenderConf{
-				{
-					Module: "@nexrender/action-copy",
-					Input:  "result.avi",
-					Output: "U:/Digimarkkinointi/Youtube-videot/Dynaaminen Youtube-video/Dynaaminen/Exports/262227016.avi",
-				},
-			},
-		},
+func writeConf(row []string, template string) {
+	vars := make(map[string]interface{})
+	vars["Template"] = template
+	vars["VideoOutputFile"] = "todo/path/sample.avi"
+	vars["ProductImagePath"] = row[IMAGE_URL_COL]
+	vars["ProductPrice"] = row[PRICE_COL]
+	vars["ProductName"] = row[PRODUCT_NAME_COL]
+	conf := ProcessFile("nerc_conf.json", vars)
+	outputFile := "output/" + row[0] + "_tuote.json"
+	err := ioutil.WriteFile(outputFile, []byte(conf), 0644)
+	if err != nil {
+		fmt.Println(err)
 	}
-	//confJson, _ := json.Marshal(conf)
-	//fmt.Println(string(confJson))
-	return conf
 }
