@@ -20,8 +20,10 @@ input: test_data/products.csv
 templates: "test_data/templates/"
 output: output/
 variables:
+csvMapping:  # CSV to Template variable mapping
   ProductName: 6          # CSV column no for product name
   ProductPrice: 14        # CSV column no for product price
   ProductImage: 21        # CSV column no for product image
-  VideoFile: "video.avi"  # Hard coded string value
+staticVariables:  # Hard coded template variables
+  VideoFile: "video.avi"
 ```

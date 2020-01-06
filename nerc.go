@@ -13,7 +13,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"reflect"
 	"strconv"
 	"text/template"
 )
@@ -29,10 +28,11 @@ type TemplateVariable struct {
 }
 
 type NercConf struct {
-	Input     string                 `yaml:"input"`
-	Templates string                 `yaml:"templates"`
-	Output    string                 `yaml:"output"`
-	Variables map[string]interface{} `yaml:"variables"`
+	Input           string                 `yaml:"input"`
+	Templates       string                 `yaml:"templates"`
+	Output          string                 `yaml:"output"`
+	StaticVariables map[string]interface{} `yaml:"staticVariables"`
+	CSVMapping      map[string]int         `yaml:"csvMapping"`
 }
 
 func main() {
@@ -144,12 +144,11 @@ func csvToConfigs(r *csv.Reader, nercConf NercConf) {
 
 func writeConf(row []string, template string, i int, nercConf NercConf) {
 	templateVars := make(map[string]interface{})
-	for k, v := range nercConf.Variables {
-		if reflect.TypeOf(v).Kind() == reflect.Int {
-			templateVars[k] = row[v.(int)]
-		} else {
-			templateVars[k] = v
-		}
+	for k, v := range nercConf.StaticVariables {
+		templateVars[k] = v
+	}
+	for k, v := range nercConf.CSVMapping {
+		templateVars[k] = row[v]
 	}
 	conf := ProcessFile(template, templateVars)
 	outputFile := "sku_" + row[0] + "_version_" + strconv.Itoa(i) + ".json"
