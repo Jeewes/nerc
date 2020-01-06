@@ -8,5 +8,6 @@ Tool for generating nexrender configs out of Magento product export.
 
 1. Download `nerc` executable from releases
 2. Run `nerc -i=<csv_input_file>`
+    - Run `nerc -h` to see help
 3. You should now have bunch of nexrender configs in a new `output` directory
 
