@@ -40,7 +40,7 @@ func main() {
 	flag.Parse()
 
 	nercConf := NercConf{}
-	confFile, readErr := ioutil.ReadFile("nerc_conf.yml")
+	confFile, readErr := ioutil.ReadFile("nerc.yml")
 	if readErr != nil {
 		panic(readErr)
 	}
