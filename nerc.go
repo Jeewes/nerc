@@ -22,7 +22,6 @@ const IMAGE_URL_COL = 21
 const PRODUCT_NAME_COL = 6
 const PRICE_COL = 14
 
-var inputFile string
 var purge bool
 
 type TemplateVariable struct {
@@ -30,13 +29,13 @@ type TemplateVariable struct {
 }
 
 type NercConf struct {
+	Input     string                 `yaml:"input"`
 	Templates string                 `yaml:"templates"`
 	Output    string                 `yaml:"output"`
 	Variables map[string]interface{} `yaml:"variables"`
 }
 
 func main() {
-	flag.StringVar(&inputFile, "i", "input.csv", "Input file")
 	flag.BoolVar(&purge, "purge", false, "Purge all existing files from output directory.")
 	flag.Parse()
 
@@ -54,11 +53,11 @@ func main() {
 		nercConf.Output = "output/"
 	}
 
-	if _, err := os.Stat(inputFile); os.IsNotExist(err) {
-		fmt.Println("Could not find '" + inputFile + "'. Specify input file with -i=<filepath>.")
+	if _, err := os.Stat(nercConf.Input); os.IsNotExist(err) {
+		fmt.Println("Could not find '" + nercConf.Input + "'. Specify input file with -i=<filepath>.")
 	} else {
-		fmt.Println("Reading input file: " + inputFile)
-		csvFile, _ := os.Open(inputFile)
+		fmt.Println("Reading input file: " + nercConf.Input)
+		csvFile, _ := os.Open(nercConf.Input)
 		r := csv.NewReader(bufio.NewReader(csvFile))
 
 		if purge {
