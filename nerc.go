@@ -24,20 +24,19 @@ const PRICE_COL = 14
 
 var inputFile string
 var purge bool
-var templatesDir string
 
 type TemplateVariable struct {
 	Key string
 }
 
 type NercConf struct {
+	Templates string                 `yaml:"templates"`
 	Output    string                 `yaml:"output"`
 	Variables map[string]interface{} `yaml:"variables"`
 }
 
 func main() {
 	flag.StringVar(&inputFile, "i", "input.csv", "Input file")
-	flag.StringVar(&templatesDir, "t", "templates/", "Path to nexrender templates dir")
 	flag.BoolVar(&purge, "purge", false, "Purge all existing files from output directory.")
 	flag.Parse()
 
@@ -70,7 +69,7 @@ func main() {
 			}
 		}
 		os.Mkdir(nercConf.Output, os.ModePerm)
-		csvToConfigs(r, templatesDir, nercConf)
+		csvToConfigs(r, nercConf)
 	}
 
 	fmt.Println("Done")
@@ -114,15 +113,15 @@ func visitPath(files *[]string) filepath.WalkFunc {
 
 // Read given csv file and build NexRender configurations
 // out of the csv and hard coded variation parameters.
-func csvToConfigs(r *csv.Reader, templatesDir string, nercConf NercConf) {
+func csvToConfigs(r *csv.Reader, nercConf NercConf) {
 	var files []string
 
-	if _, err := os.Stat(templatesDir); !os.IsNotExist(err) {
-		err := filepath.Walk(templatesDir, visitPath(&files))
+	if _, err := os.Stat(nercConf.Templates); !os.IsNotExist(err) {
+		err := filepath.Walk(nercConf.Templates, visitPath(&files))
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(strconv.Itoa(len(files)) + " templates found from " + templatesDir)
+		fmt.Println(strconv.Itoa(len(files)) + " templates found from " + nercConf.Templates)
 	}
 
 	configCount := 0
