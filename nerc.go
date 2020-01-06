@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"text/template"
@@ -22,28 +23,33 @@ const PRICE_COL = 14
 var inputFile string
 var purge bool
 var templatesDir string
+var outputDir string
 
 func main() {
 	flag.StringVar(&inputFile, "i", "input.csv", "Input file")
 	flag.StringVar(&templatesDir, "t", "templates/", "Path to nexrender templates dir")
+	flag.StringVar(&outputDir, "o", "output/", "Output directory path")
 	flag.BoolVar(&purge, "purge", false, "Purge all existing files from output directory.")
 	flag.Parse()
 
-	fmt.Println("Reading input file: " + inputFile)
+	if _, err := os.Stat(inputFile); os.IsNotExist(err) {
+		fmt.Println("Could not find '" + inputFile + "'. Specify input file with -i=<filepath>.")
+	} else {
+		fmt.Println("Reading input file: " + inputFile)
+		csvFile, _ := os.Open(inputFile)
+		r := csv.NewReader(bufio.NewReader(csvFile))
 
-	csvFile, _ := os.Open(inputFile)
-	r := csv.NewReader(bufio.NewReader(csvFile))
-
-	if purge {
-		fmt.Println("Purging output directory...")
-		err := os.RemoveAll("output")
-		if err != nil {
-			fmt.Println(err)
+		if purge {
+			fmt.Println("Purging output directory...")
+			err := os.RemoveAll(outputDir)
+			if err != nil {
+				fmt.Println(err)
+			}
 		}
+		os.Mkdir(outputDir, os.ModePerm)
+		csvToConfigs(r, templatesDir, outputDir)
 	}
-	os.Mkdir("output", os.ModePerm)
 
-	csvToConfigs(r, templatesDir)
 	fmt.Println("Done")
 }
 
@@ -85,19 +91,22 @@ func visitPath(files *[]string) filepath.WalkFunc {
 
 // Read given csv file and build NexRender configurations
 // out of the csv and hard coded variation parameters.
-func csvToConfigs(r *csv.Reader, templatesDir string) {
+func csvToConfigs(r *csv.Reader, templatesDir string, outputDir string) {
 	var files []string
 
-	err := filepath.Walk(templatesDir, visitPath(&files))
-	if err != nil {
-		panic(err)
+	if _, err := os.Stat(templatesDir); !os.IsNotExist(err) {
+		err := filepath.Walk(templatesDir, visitPath(&files))
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(strconv.Itoa(len(files)) + " templates found from " + templatesDir)
 	}
 
+	configCount := 0
 	for {
 		row, err := r.Read()
 
 		if err == io.EOF {
-			fmt.Println("End of input file")
 			break
 		}
 		if err != nil {
@@ -105,12 +114,14 @@ func csvToConfigs(r *csv.Reader, templatesDir string) {
 		}
 
 		for i, templateFile := range files {
-			writeConf(row, templateFile, i)
+			writeConf(row, templateFile, i, outputDir)
+			configCount += 1
 		}
 	}
+	fmt.Println("Wrote " + strconv.Itoa(configCount) + " config files to " + outputDir)
 }
 
-func writeConf(row []string, template string, i int) {
+func writeConf(row []string, template string, i int, outputDir string) {
 	vars := make(map[string]interface{})
 	vars["Template"] = template
 	vars["VideoOutputFile"] = "todo/path/sample.avi"
@@ -118,8 +129,8 @@ func writeConf(row []string, template string, i int) {
 	vars["ProductPrice"] = row[PRICE_COL]
 	vars["ProductName"] = row[PRODUCT_NAME_COL]
 	conf := ProcessFile("nerc_conf.json", vars)
-	outputFile := "output/sku_" + row[0] + "_version_" + strconv.Itoa(i) + ".json"
-	err := ioutil.WriteFile(outputFile, []byte(conf), 0644)
+	outputFile := "sku_" + row[0] + "_version_" + strconv.Itoa(i) + ".json"
+	err := ioutil.WriteFile(path.Join(outputDir, outputFile), []byte(conf), 0644)
 	if err != nil {
 		fmt.Println(err)
 	}
