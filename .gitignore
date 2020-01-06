@@ -1,0 +1,5 @@
+.idea/
+output/
+test_data/
+
+*.exe
