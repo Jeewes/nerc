@@ -14,16 +14,19 @@ Tool for filling nexrender config templates with CSV data.
 
 ## Configuring nerc.yml
 
-An example:
+An example of `nerc.yml` file:
 ```yaml
-input: test_data/products.csv
-templates: "test_data/templates/"
-output: output/
-variables:
-csvMapping:  # CSV to Template variable mapping
-  ProductName: 6          # CSV column no for product name
-  ProductPrice: 14        # CSV column no for product price
-  ProductImage: 21        # CSV column no for product image
-staticVariables:  # Hard coded template variables
-  VideoFile: "video.avi"
+input: test_data/products.csv       # Defines the CSV input filepath
+templates: "test_data/templates/"   # Defines the dirpath of the template files
+output: output/                     # Defines the output dirpath
+variables:                          # Defines template variables
+  - key: ProductName                # Defines the variable key or "name"
+    csvSourceCol: 6                 # CSV column no for product name
+  - key: ProductPrice               
+    csvSourceCol: 14
+    type: price                     # Type of the variable. Price is rendered with two decimals.
+  - key: ProductImage
+    csvSourceCol: 21
+  - key: VideoFile
+    value: "video.avi"              # Hard coded value to be used
 ```
