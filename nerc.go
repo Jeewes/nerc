@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/csv"
+	"errors"
 	"flag"
 	"fmt"
 	"gopkg.in/yaml.v2"
@@ -24,13 +25,17 @@ const PRICE_COL = 14
 var purge bool
 
 type TemplateVariable struct {
-	Key string
+	Key          string      `yaml:"key"`
+	CSVSourceCol int         `yaml:"csvSourceCol"`
+	Value        interface{} `yaml:"value"`
+	Type         string      `yaml:"type"`
 }
 
 type NercConf struct {
 	Input           string                 `yaml:"input"`
 	Templates       string                 `yaml:"templates"`
 	Output          string                 `yaml:"output"`
+	Variables       []TemplateVariable     `yaml:"variables"`
 	StaticVariables map[string]interface{} `yaml:"staticVariables"`
 	CSVMapping      map[string]int         `yaml:"csvMapping"`
 }
@@ -124,6 +129,7 @@ func csvToConfigs(r *csv.Reader, nercConf NercConf) {
 	}
 
 	configCount := 0
+	firstLine := true
 	for {
 		row, err := r.Read()
 
@@ -134,21 +140,45 @@ func csvToConfigs(r *csv.Reader, nercConf NercConf) {
 			log.Fatal(err)
 		}
 
-		for i, templateFile := range files {
-			writeConf(row, templateFile, i, nercConf)
-			configCount += 1
+		if firstLine {
+			// Treat first line as header line and skip it
+			firstLine = false
+		} else {
+			for i, templateFile := range files {
+				writeConf(row, templateFile, i, nercConf)
+				configCount += 1
+			}
 		}
 	}
 	fmt.Println("Wrote " + strconv.Itoa(configCount) + " config files to " + nercConf.Output)
 }
 
+func toPriceString(price interface{}) (string, error) {
+	if s, err := strconv.ParseFloat(fmt.Sprintf("%v", price), 64); err == nil {
+		return fmt.Sprintf("%.2f", s), nil
+	} else {
+		return "", errors.New(fmt.Sprintf("Could not convert '%v' to a price string", price))
+	}
+}
+
 func writeConf(row []string, template string, i int, nercConf NercConf) {
 	templateVars := make(map[string]interface{})
-	for k, v := range nercConf.StaticVariables {
-		templateVars[k] = v
-	}
-	for k, v := range nercConf.CSVMapping {
-		templateVars[k] = row[v]
+	for _, variable := range nercConf.Variables {
+		if variable.CSVSourceCol > 0 {
+			value := string(row[variable.CSVSourceCol])
+			//templateVars[variable.Key] = row[variable.CSVSourceCol]
+			if variable.Type == "price" && value != "" {
+				price, err := toPriceString(value)
+				if err != nil {
+					fmt.Println("Error in sku " + row[0] + ": " + err.Error())
+				} else {
+					value = price
+				}
+			}
+			templateVars[variable.Key] = value
+		} else {
+			templateVars[variable.Key] = variable.Value
+		}
 	}
 	conf := ProcessFile(template, templateVars)
 	outputFile := "sku_" + row[0] + "_version_" + strconv.Itoa(i) + ".json"
