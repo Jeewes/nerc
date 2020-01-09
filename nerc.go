@@ -176,8 +176,6 @@ func writeConf(row []string, template string, i int, nercConf NercConf) {
 				}
 			}
 			templateVars[variable.Key] = value
-		} else {
-			templateVars[variable.Key] = variable.Value
 		}
 	}
 	conf := ProcessFile(template, templateVars)
