@@ -4,6 +4,10 @@ Tool for filling nexrender config templates with CSV data.
 
 **Note:** This is wery much work in progress...
 
+## Idea of the tool
+
+![nerc_idea](nerc_idea.png)
+
 ## Getting started
 
 1. Download `nerc` executable from releases
