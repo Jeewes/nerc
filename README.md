@@ -10,7 +10,7 @@ Tool for filling nexrender config templates with CSV data.
 
 ## Getting started
 
-1. Download `nerc` executable from releases
+1. Download `nerc` executable from [releases](https://github.com/Jeewes/nerc/releases)
 2. Configure `nerc.yml`
 3. Run `nerc`
     - Run `nerc -h` to see help
