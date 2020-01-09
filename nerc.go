@@ -164,19 +164,16 @@ func toPriceString(price interface{}) (string, error) {
 func writeConf(row []string, template string, i int, nercConf NercConf) {
 	templateVars := make(map[string]interface{})
 	for _, variable := range nercConf.Variables {
-		if variable.CSVSourceCol > 0 {
-			value := string(row[variable.CSVSourceCol])
-			//templateVars[variable.Key] = row[variable.CSVSourceCol]
-			if variable.Type == "price" && value != "" {
-				price, err := toPriceString(value)
-				if err != nil {
-					fmt.Println("Error in sku " + row[0] + ": " + err.Error())
-				} else {
-					value = price
-				}
+		value := string(row[variable.CSVSourceCol])
+		if variable.Type == "price" && value != "" {
+			price, err := toPriceString(value)
+			if err != nil {
+				fmt.Println("Error in sku " + row[0] + ": " + err.Error())
+			} else {
+				value = price
 			}
-			templateVars[variable.Key] = value
 		}
+		templateVars[variable.Key] = value
 	}
 	conf := ProcessFile(template, templateVars)
 	outputFile := "sku_" + row[0] + "_version_" + strconv.Itoa(i) + ".json"
