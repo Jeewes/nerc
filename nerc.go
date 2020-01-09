@@ -22,7 +22,8 @@ const IMAGE_URL_COL = 21
 const PRODUCT_NAME_COL = 6
 const PRICE_COL = 14
 
-var purge bool
+var purgeOnly bool
+var verbose bool
 
 type TemplateVariable struct {
 	Key          string      `yaml:"key"`
@@ -41,7 +42,8 @@ type NercConf struct {
 }
 
 func main() {
-	flag.BoolVar(&purge, "purge", false, "Purge all existing files from output directory.")
+	flag.BoolVar(&purgeOnly, "purge", false, "Purge all existing files from output directory and stop.")
+	flag.BoolVar(&verbose, "v", false, "Use verbose output.")
 	flag.Parse()
 
 	nercConf := NercConf{}
@@ -61,22 +63,27 @@ func main() {
 	if _, err := os.Stat(nercConf.Input); os.IsNotExist(err) {
 		fmt.Println("Could not find '" + nercConf.Input + "'. Specify input file with -i=<filepath>.")
 	} else {
-		fmt.Println("Reading input file: " + nercConf.Input)
-		csvFile, _ := os.Open(nercConf.Input)
-		r := csv.NewReader(bufio.NewReader(csvFile))
+		purgeOutput(nercConf, !verbose)
 
-		if purge {
-			fmt.Println("Purging output directory...")
-			err := os.RemoveAll(nercConf.Output)
-			if err != nil {
-				fmt.Println(err)
-			}
+		if purgeOnly {
+			fmt.Println("Purged output directory")
+		} else {
+			fmt.Println("Reading input file: " + nercConf.Input)
+			csvFile, _ := os.Open(nercConf.Input)
+			r := csv.NewReader(bufio.NewReader(csvFile))
+			os.Mkdir(nercConf.Output, os.ModePerm)
+			csvToConfigs(r, nercConf)
 		}
-		os.Mkdir(nercConf.Output, os.ModePerm)
-		csvToConfigs(r, nercConf)
 	}
 
 	fmt.Println("Done")
+}
+
+func purgeOutput(nercConf NercConf, silent bool) {
+	err := os.RemoveAll(nercConf.Output)
+	if err != nil && !silent {
+		fmt.Println(err)
+	}
 }
 
 // process applies the data structure 'vars' onto an already
