@@ -28,7 +28,6 @@ var verbose bool
 type TemplateVariable struct {
 	Key          string      `yaml:"key"`
 	CSVSourceCol int         `yaml:"csvSourceCol"`
-	Value        interface{} `yaml:"value"`
 	Type         string      `yaml:"type"`
 }
 
