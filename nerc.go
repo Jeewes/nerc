@@ -12,9 +12,11 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"text/template"
 )
 
@@ -24,11 +26,12 @@ const PRICE_COL = 14
 
 var purgeOnly bool
 var verbose bool
+var run bool
 
 type TemplateVariable struct {
-	Key          string      `yaml:"key"`
-	CSVSourceCol int         `yaml:"csvSourceCol"`
-	Type         string      `yaml:"type"`
+	Key          string `yaml:"key"`
+	CSVSourceCol int    `yaml:"csvSourceCol"`
+	Type         string `yaml:"type"`
 }
 
 type NercConf struct {
@@ -38,11 +41,13 @@ type NercConf struct {
 	Variables       []TemplateVariable     `yaml:"variables"`
 	StaticVariables map[string]interface{} `yaml:"staticVariables"`
 	CSVMapping      map[string]int         `yaml:"csvMapping"`
+	RunCommand      string                 `yaml:"runCommand"`
 }
 
 func main() {
 	flag.BoolVar(&purgeOnly, "purge", false, "Purge all existing files from output directory and stop.")
 	flag.BoolVar(&verbose, "v", false, "Use verbose output.")
+	flag.BoolVar(&run, "run", false, "Execute runCommand (from nerc.yml) for each generated file.")
 	flag.Parse()
 
 	nercConf := NercConf{}
@@ -72,10 +77,36 @@ func main() {
 			r := csv.NewReader(bufio.NewReader(csvFile))
 			os.Mkdir(nercConf.Output, os.ModePerm)
 			csvToConfigs(r, nercConf)
+			if run && nercConf.RunCommand != "" {
+				runCommandForTemplates(nercConf)
+			}
 		}
 	}
 
 	fmt.Println("Done")
+}
+
+func runCommandForTemplates(conf NercConf) {
+	var files []string
+
+	if _, err := os.Stat(conf.Output); !os.IsNotExist(err) {
+		err := filepath.Walk(conf.Output, visitPath(&files))
+		if err != nil {
+			panic(err)
+		}
+		for _, file := range files {
+			cmdArgs := strings.Fields(fmt.Sprintf(conf.RunCommand, file))
+			cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
+			stdout, err := cmd.Output()
+
+			if err != nil {
+				fmt.Println(err.Error())
+				return
+			}
+
+			fmt.Print(string(stdout))
+		}
+	}
 }
 
 func purgeOutput(nercConf NercConf, silent bool) {
