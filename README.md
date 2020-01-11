@@ -1,3 +1,5 @@
+![nerc_logo](nerc_logo.png)
+
 # NERC - nexrender configurer
 
 Tool for filling nexrender config templates with CSV data.
@@ -8,7 +10,7 @@ Tool for filling nexrender config templates with CSV data.
 
 ![nerc_idea](nerc_idea.png)
 
-## Getting started
+## Getting started...
 
 1. Download `nerc` executable from [releases](https://github.com/Jeewes/nerc/releases)
 2. Configure `nerc.yml`
@@ -55,4 +57,8 @@ the template filename.
 `-purge`: Cleans the output directory from all files. Everything inside the output directory specified in `nerc.yaml`
 will be removed.
 
-`-v`: Gives more verbose output. 
+`-v`: Gives more verbose output.
+
+### Attributions
+
+Nerc Logo: <div>Icons made by <a href="https://www.flaticon.com/authors/freepik" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></div>
