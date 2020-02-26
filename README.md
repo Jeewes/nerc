@@ -33,7 +33,7 @@ variables:                          # Defines template variables
   - key: ProductImage
     csvSourceCol: 21
 output: output/                     # Defines the output dirpath
-runCommand: head -1 %s              # Command to be executed if -r flag is given.
+runCommand: head -1 %s              # Command to be executed if -run flag is given.
 ```
 `input:` Path to the input CSV file
 
@@ -49,7 +49,7 @@ which defines the CSV column number where the tools fetches the variable value. 
 
 ## Command line flags
 
-`-r`: Use `nerc -r` to execute command using each generated config file as an input for the command. Define the
+`-run`: Use `nerc -run` to execute command using each generated config file as an input for the command. Define the
 executed command in `nerc.yaml` with `runCommand` key e.g. `runCommand: head -1 %s` would call `head -1` command
 for each generated config file and hence output the first line of each file. Note that the `%s` is substituted with
 the template filename.
